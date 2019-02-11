@@ -17,9 +17,13 @@ class ItemsSpider(scrapy.Spider):
         s = div.css('.niveau::text').get()
         return int(ItemsSpider.re_level.match(s).group('level'))
 
+    re_recipe = re.compile(r'(?P<item_count>[0-9]+)x <.*>(?P<item_name>.*)<.*>')
     @staticmethod
     def parse_recipe(div):
-        pass
+        s = div.css('.ing').css('td').extract_first()
+        s = s.replace('<td class="ing">', '').replace('</td>', '')
+        recipe_items_match = [ItemsSpider.re_recipe.match(e) for e in s.split('<br>')[:-1]]
+        return [{'item': e.group('item_name'), 'count': e.group('item_count')} for e in recipe_items_match]
 
     @staticmethod
     def parse_stats(div):
@@ -36,7 +40,7 @@ class ItemsSpider(scrapy.Spider):
             item = {
                 'name': ItemsSpider.parse_name(item_component),
                 'level': ItemsSpider.parse_level(item_component),
-                'recipe': ItemsSpider.parse_recipe(item_component.css('.ing')),
+                'recipe': ItemsSpider.parse_recipe(item_component),
                 'stats': ItemsSpider.parse_stats(item_component.css('.effet')),
                 'requirments': ItemsSpider.parse_requirements(item_component.css('.itions'))
             }
