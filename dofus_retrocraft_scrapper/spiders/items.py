@@ -5,7 +5,17 @@ import re
 class ItemsSpider(scrapy.Spider):
     name = 'items'
     allowed_domains = ['barbok.eratz.fr']
-    start_urls = ['http://barbok.eratz.fr/amulettes.html']
+    base_url = "http://barbok.eratz.fr"
+    start_urls = [
+        f'{base_url}/amulettes.html',
+        f'{base_url}/anneaux.html',
+        f'{base_url}/bottes.html',
+        f'{base_url}/bouclier.html',
+        f'{base_url}/capes.html',
+        f'{base_url}/ceintures.html',
+        f'{base_url}/chapeaux.html',
+        f'{base_url}/sac.html'
+    ]
     
     @staticmethod
     def parse_name(div):
