@@ -33,7 +33,7 @@ class ItemsSpider(scrapy.Spider):
         s = div.css('.ing').css('td').extract_first()
         s = s.replace('<td class="ing">', '').replace('</td>', '')
         recipe_items_match = [ItemsSpider.re_recipe.match(e) for e in s.split('<br>')[:-1]]
-        return [{'item': e.group('item_name'), 'count': e.group('item_count')} for e in recipe_items_match]
+        return [{'item': e.group('item_name'), 'count': int(e.group('item_count'))} for e in recipe_items_match]
 
     @staticmethod
     def parse_stats(div):
