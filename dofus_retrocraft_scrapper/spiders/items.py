@@ -62,6 +62,7 @@ class ItemsSpider(scrapy.Spider):
     rs_value = rf'((?P<multi_values><.*>(?P<value_min>{rs_number})<.*> à <.*>(?P<value_max>{rs_number})<.*>)|(?P<single_value><.*>(?P<value>{rs_number})<.*>))'
     re_classical_bonus = re.compile(rf'^(?P<classical_bonus>(?P<bonus_type>.+) : {rs_value}(?P<percentage>%)?( \((?P<element>[a-z]+)\))?)$')
     re_dommage = re.compile(rf'^(?P<dommages>{rs_value} de dommages)$')
+    re_dommage_trap = re.compile(rf'^(?P<dommage_trap>{rs_value} de dommages au pièges)$')
     re_perc_dommage = re.compile(rf'^(?P<perc_dommage>Augmente les dommages de {rs_value}%)$')
     re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages au pièges)$')
     @staticmethod
@@ -74,19 +75,24 @@ class ItemsSpider(scrapy.Spider):
             bonus = {}
             match_classical_bonus = ItemsSpider.re_classical_bonus.match(item)
             if match_classical_bonus is not None:
-                ItemsSpider.parse_bonus_classical(match_classical_bonus)
-                break
+                res.append(ItemsSpider.parse_bonus_classical(match_classical_bonus))
+                continue
             match_dommage = ItemsSpider.re_dommage.match(item)
             if match_dommage is not None:
-                ItemsSpider.parse_bonus_exception(match_dommage, 'Dommage')
-                break
+                res.append(ItemsSpider.parse_bonus_exception(match_dommage, 'Dommage'))
+                continue
+            match_dommage_trap = ItemsSpider.re_dommage_trap.match(item)
+            if match_dommage_trap is not None:
+                res.append(ItemsSpider.parse_bonus_exception(match_dommage_trap, 'Dommage au piège'))
+                continue
             match_perc_dommage = ItemsSpider.re_perc_dommage.match(item)
             if match_perc_dommage is not None:
-                ItemsSpider.parse_bonus_exception(match_dommage, '\% de dommage')
-                break
-            if match_perc_dommage is not None:
-                ItemsSpider.parse_bonus_exception(match_dommage, '\% de dommage au piège')
-                break
+                res.append(ItemsSpider.parse_bonus_exception(match_perc_dommage, '\% de dommage'))
+                continue
+            match_perc_dommage_trap = ItemsSpider.re_perc_dommage_trap.match(item)
+            if match_perc_dommage_trap is not None:
+                res.append(ItemsSpider.parse_bonus_exception(match_perc_dommage_trap, '\% de dommage au piège'))
+                continue
             bonus['type'] = re.sub(r'<[^<>]+>', '', item)
             print(bonus['type'])
             res.append(bonus)
