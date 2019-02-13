@@ -14,7 +14,16 @@ class ItemsSpider(scrapy.Spider):
         f'{base_url}/capes.html',
         f'{base_url}/ceintures.html',
         f'{base_url}/chapeaux.html',
-        f'{base_url}/sac.html'
+        f'{base_url}/sac.html',
+
+        f'{base_url}/arc.html',
+        f'{base_url}/baguette.html',
+        f'{base_url}/batton.html',
+        f'{base_url}/dague.html',
+        f'{base_url}/epee.html',
+        f'{base_url}/hache.html',
+        f'{base_url}/marteaux.html',
+        f'{base_url}/pelle.html'
     ]
     
     @staticmethod
@@ -26,12 +35,19 @@ class ItemsSpider(scrapy.Spider):
     def parse_level(div):
         s = div.css('.niveau::text').get()
         return int(ItemsSpider.re_level.match(s).group('level'))
+    
+    @staticmethod
+    def extract_td_class_content(div, td_class):
+        for c in td_class:
+            s = div.css(f'.{c}').extract_first()
+            if s is not None:
+                s = s.replace(f'<td class="{c}">', '').replace('</td>', '')
+                return s
 
     re_recipe = re.compile(r'(?P<item_count>[0-9]+)x <.*>(?P<item_name>.*)<.*>')
     @staticmethod
     def parse_recipe(div):
-        s = div.css('.ing').css('td').extract_first()
-        s = s.replace('<td class="ing">', '').replace('</td>', '')
+        s = ItemsSpider.extract_td_class_content(div, ['ing', 'b1']) 
         recipe_items_match = [ItemsSpider.re_recipe.match(e) for e in s.split('<br>')[:-1]]
         return [{'item': e.group('item_name'), 'count': int(e.group('item_count'))} for e in recipe_items_match]
     
@@ -67,8 +83,7 @@ class ItemsSpider(scrapy.Spider):
     re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages au pièges)$')
     @staticmethod
     def parse_bonus(div):
-        s = div.css('.effet').extract_first()
-        s = s.replace('<td class="effet">', '').replace('</td>', '')
+        s = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
         items = s.split('<br>')[:-1]
         res = []
         for item in items:
@@ -111,7 +126,7 @@ class ItemsSpider(scrapy.Spider):
                 'level': ItemsSpider.parse_level(item_component),
                 'recipe': ItemsSpider.parse_recipe(item_component),
                 'bonus': ItemsSpider.parse_bonus(item_component),
-                'requirments': ItemsSpider.parse_requirements(item_component.css('.itions'))
+                'requirments': ItemsSpider.parse_requirements(item_component)
             }
             items.append(item)
         item_type = response.css('.donjon::text').get()
