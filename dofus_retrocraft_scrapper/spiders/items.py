@@ -87,9 +87,9 @@ class ItemsSpider(scrapy.Spider):
     rs_element = r'\((?P<element>[a-z]+)\)'
     re_classical_bonus = re.compile(rf'^(?P<classical_bonus>(?P<bonus_type>.+) : {rs_value}(?P<percentage>%)?( {rs_element})?)$')
     re_dommage = re.compile(rf'^(?P<dommages>{rs_value} de dommages)$')
-    re_dommage_trap = re.compile(rf'^(?P<dommage_trap>[+]?{rs_value} de dommages au pièges)$')
+    re_dommage_trap = re.compile(rf'^(?P<dommage_trap>[+]?{rs_value} de dommages aux pièges)$')
     re_perc_dommage = re.compile(rf'^(?P<perc_dommage>Augmente les dommages de {rs_value}%)$')
-    re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages au pièges)$')
+    re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages aux pièges)$')
     re_steal_hp = re.compile(rf'^Vole {rs_value} PV {rs_element}$')
     @staticmethod
     def parse_bonus(div):
