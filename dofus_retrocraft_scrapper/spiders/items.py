@@ -158,7 +158,41 @@ class ItemsSpider(scrapy.Spider):
             bonus['type'] = line
             res.append(bonus)
         return res
+
+    @staticmethod
+    def extract_td_class_ws(div):
+        s = div.css(f'.b3').extract_first()
+        if s is not None:
+            lines = s.split('<br>')
+            lines = [re.sub(r'(<[^<>]+>)|(\n)', '', line) for line in lines]
+            lines = [html.unescape(line) for line in lines]
+            return lines
+
+    @staticmethod
+    def parse_ws(regex, line):
+        return int(regex.match(line).group('value'))
+
+    rs_simple_value = r'(?P<value>[0-9]+)'
+    re_PA = re.compile(rf'PA : {rs_simple_value}')
+    re_scope = re.compile(rf'Portée : {rs_simple_value}')
+    re_critical_hit_bonus = re.compile(rf'Bonus CC : \+{rs_simple_value}')
+    re_critical_hit_prob = re.compile(rf'Critique : 1/{rs_simple_value}')
+    re_fail_prob = re.compile(rf'Echec : 1/{rs_simple_value}')
+    @staticmethod
+    def parse_weapon_stats(div):
+        lines = ItemsSpider.extract_td_class_ws(div)
+        if lines is None:
+            return None
+        res = {
+            'AP': ItemsSpider.parse_ws(ItemsSpider.re_PA, lines[0]),
+            'scope': ItemsSpider.parse_ws(ItemsSpider.re_scope, lines[1]),
+            'critical_hit_bonus': ItemsSpider.parse_ws(ItemsSpider.re_critical_hit_bonus, lines[2]),
+            'critical_hit_prob': ItemsSpider.parse_ws(ItemsSpider.re_critical_hit_prob, lines[3]),
+            'fail_prob': ItemsSpider.parse_ws(ItemsSpider.re_fail_prob, lines[4])
+        }
+        return res
         
+
     def parse(self, response):
         items = []
         items_component = response.css('#corps').css('table')
@@ -168,6 +202,7 @@ class ItemsSpider(scrapy.Spider):
                 'level': ItemsSpider.parse_level(item_component),
                 'recipe': ItemsSpider.parse_recipe(item_component),
                 'bonus': ItemsSpider.parse_bonus(item_component),
+                'weapon_stats': ItemsSpider.parse_weapon_stats(item_component),
                 'requirments': ItemsSpider.parse_requirements(item_component)
             }
             items.append(item)
