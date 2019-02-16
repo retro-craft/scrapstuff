@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 import re
+import html
 
 class ItemsSpider(scrapy.Spider):
     name = 'items'
@@ -42,7 +43,8 @@ class ItemsSpider(scrapy.Spider):
             s = div.css(f'.{c}').extract_first()
             if s is not None:
                 lines = s.split('<br>')[:-1]
-                lines = [re.sub(r'<[^<>]+>', '', line) for line in lines] 
+                lines = [re.sub(r'<[^<>]+>', '', line) for line in lines]
+                lines = [html.unescape(line) for line in lines]
                 return lines
 
     re_recipe = re.compile(r'(?P<item_count>[0-9]+)x (?P<item_name>.*)')
@@ -97,7 +99,8 @@ class ItemsSpider(scrapy.Spider):
         lines = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
         res = []
         for line in lines:
-            bonus = {}
+            if line == '':
+                continue
             match_classical_bonus = ItemsSpider.re_classical_bonus.match(line)
             if match_classical_bonus is not None:
                 res.append(ItemsSpider.parse_bonus_classical(match_classical_bonus))
@@ -126,14 +129,35 @@ class ItemsSpider(scrapy.Spider):
             if match_perc_dommage_trap is not None:
                 res.append(ItemsSpider.parse_bonus_exception(match_perc_dommage_trap, '\% de dommage au piège'))
                 continue
-            bonus['type'] = re.sub(r'<[^<>]+>', '', line)
+            bonus = {}
+            bonus['type'] = line
             print(bonus['type'])
             res.append(bonus)
         return res
 
     @staticmethod
+    def parse_requirement(match):
+        res = {}
+        res['type'] = match.group('type')
+        res['value'] = ItemsSpider.parse_values(match)
+        return res
+
+    re_requirement = re.compile(rf'^(?P<type>.+ ((>)|(<))) {rs_value}$')
+    @staticmethod
     def parse_requirements(div):
-        pass
+        lines = ItemsSpider.extract_td_class_content(div, ['itions', 'b4']) 
+        res = []
+        for line in lines:
+            if line == '':
+                continue
+            bonus = {}
+            match_requirement = ItemsSpider.re_requirement.match(line)
+            if match_requirement is not None:
+                res.append(ItemsSpider.parse_requirement(match_requirement))
+                continue
+            bonus['type'] = line
+            res.append(bonus)
+        return res
         
     def parse(self, response):
         items = []
