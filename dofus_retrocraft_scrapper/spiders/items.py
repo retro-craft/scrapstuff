@@ -41,14 +41,15 @@ class ItemsSpider(scrapy.Spider):
         for c in td_class:
             s = div.css(f'.{c}').extract_first()
             if s is not None:
-                s = s.replace(f'<td class="{c}">', '').replace('</td>', '')
-                return s
+                lines = s.split('<br>')[:-1]
+                lines = [re.sub(r'<[^<>]+>', '', line) for line in lines] 
+                return lines
 
-    re_recipe = re.compile(r'(?P<item_count>[0-9]+)x <.*>(?P<item_name>.*)<.*>')
+    re_recipe = re.compile(r'(?P<item_count>[0-9]+)x (?P<item_name>.*)')
     @staticmethod
     def parse_recipe(div):
-        s = ItemsSpider.extract_td_class_content(div, ['ing', 'b1']) 
-        recipe_items_match = [ItemsSpider.re_recipe.match(e) for e in s.split('<br>')[:-1]]
+        lines = ItemsSpider.extract_td_class_content(div, ['ing', 'b1']) 
+        recipe_items_match = [ItemsSpider.re_recipe.match(line) for line in lines]
         return [{'item': e.group('item_name'), 'count': int(e.group('item_count'))} for e in recipe_items_match]
     
 
@@ -75,7 +76,7 @@ class ItemsSpider(scrapy.Spider):
         return res
 
     rs_number = r'[-+]?[0-9]+'
-    rs_value = rf'((?P<multi_values><.*>(?P<value_min>{rs_number})<.*> à <.*>(?P<value_max>{rs_number})<.*>)|(?P<single_value><.*>(?P<value>{rs_number})<.*>))'
+    rs_value = rf'((?P<multi_values>(?P<value_min>{rs_number}) à (?P<value_max>{rs_number}))|(?P<single_value>(?P<value>{rs_number})))'
     re_classical_bonus = re.compile(rf'^(?P<classical_bonus>(?P<bonus_type>.+) : {rs_value}(?P<percentage>%)?( \((?P<element>[a-z]+)\))?)$')
     re_dommage = re.compile(rf'^(?P<dommages>{rs_value} de dommages)$')
     re_dommage_trap = re.compile(rf'^(?P<dommage_trap>{rs_value} de dommages au pièges)$')
@@ -83,32 +84,31 @@ class ItemsSpider(scrapy.Spider):
     re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages au pièges)$')
     @staticmethod
     def parse_bonus(div):
-        s = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
-        items = s.split('<br>')[:-1]
+        lines = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
         res = []
-        for item in items:
+        for line in lines:
             bonus = {}
-            match_classical_bonus = ItemsSpider.re_classical_bonus.match(item)
+            match_classical_bonus = ItemsSpider.re_classical_bonus.match(line)
             if match_classical_bonus is not None:
                 res.append(ItemsSpider.parse_bonus_classical(match_classical_bonus))
                 continue
-            match_dommage = ItemsSpider.re_dommage.match(item)
+            match_dommage = ItemsSpider.re_dommage.match(line)
             if match_dommage is not None:
                 res.append(ItemsSpider.parse_bonus_exception(match_dommage, 'Dommage'))
                 continue
-            match_dommage_trap = ItemsSpider.re_dommage_trap.match(item)
+            match_dommage_trap = ItemsSpider.re_dommage_trap.match(line)
             if match_dommage_trap is not None:
                 res.append(ItemsSpider.parse_bonus_exception(match_dommage_trap, 'Dommage au piège'))
                 continue
-            match_perc_dommage = ItemsSpider.re_perc_dommage.match(item)
+            match_perc_dommage = ItemsSpider.re_perc_dommage.match(line)
             if match_perc_dommage is not None:
                 res.append(ItemsSpider.parse_bonus_exception(match_perc_dommage, '\% de dommage'))
                 continue
-            match_perc_dommage_trap = ItemsSpider.re_perc_dommage_trap.match(item)
+            match_perc_dommage_trap = ItemsSpider.re_perc_dommage_trap.match(line)
             if match_perc_dommage_trap is not None:
                 res.append(ItemsSpider.parse_bonus_exception(match_perc_dommage_trap, '\% de dommage au piège'))
                 continue
-            bonus['type'] = re.sub(r'<[^<>]+>', '', item)
+            bonus['type'] = re.sub(r'<[^<>]+>', '', line)
             print(bonus['type'])
             res.append(bonus)
         return res
