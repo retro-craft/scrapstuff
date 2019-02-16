@@ -91,6 +91,7 @@ class ItemsSpider(scrapy.Spider):
     re_perc_dommage = re.compile(rf'^(?P<perc_dommage>Augmente les dommages de {rs_value}%)$')
     re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages aux pièges)$')
     re_steal_hp = re.compile(rf'^Vole {rs_value} PV {rs_element}$')
+    re_res_figter = re.compile(rf'^{rs_value}(?P<type>(%)? de resistance (.+) aux combatants)$')
     @staticmethod
     def parse_bonus(div):
         lines = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
@@ -104,6 +105,10 @@ class ItemsSpider(scrapy.Spider):
             match_vole_pv = ItemsSpider.re_steal_hp.match(line)
             if match_vole_pv is not None:
                 res.append(ItemsSpider.parse_steal_hp(match_vole_pv))
+                continue
+            match_res_fighter = ItemsSpider.re_res_figter.match(line)
+            if match_res_fighter is not None:
+                res.append(ItemsSpider.parse_bonus_exception(match_res_fighter, match_res_fighter.group('type')))
                 continue
             match_dommage = ItemsSpider.re_dommage.match(line)
             if match_dommage is not None:
