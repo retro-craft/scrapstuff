@@ -69,6 +69,13 @@ class ItemsSpider(scrapy.Spider):
         return res
 
     @staticmethod
+    def parse_steal_hp(match):
+        res = {}
+        res['type'] = 'Vole ' + match.group('element')
+        res['values'] = ItemsSpider.parse_values(match)
+        return res
+
+    @staticmethod
     def parse_bonus_exception(match, type):
         res = {}
         res['type'] = type
@@ -77,11 +84,13 @@ class ItemsSpider(scrapy.Spider):
 
     rs_number = r'[-+]?[0-9]+'
     rs_value = rf'((?P<multi_values>(?P<value_min>{rs_number}) à (?P<value_max>{rs_number}))|(?P<single_value>(?P<value>{rs_number})))'
-    re_classical_bonus = re.compile(rf'^(?P<classical_bonus>(?P<bonus_type>.+) : {rs_value}(?P<percentage>%)?( \((?P<element>[a-z]+)\))?)$')
+    rs_element = r'\((?P<element>[a-z]+)\)'
+    re_classical_bonus = re.compile(rf'^(?P<classical_bonus>(?P<bonus_type>.+) : {rs_value}(?P<percentage>%)?( {rs_element})?)$')
     re_dommage = re.compile(rf'^(?P<dommages>{rs_value} de dommages)$')
-    re_dommage_trap = re.compile(rf'^(?P<dommage_trap>{rs_value} de dommages au pièges)$')
+    re_dommage_trap = re.compile(rf'^(?P<dommage_trap>[+]?{rs_value} de dommages au pièges)$')
     re_perc_dommage = re.compile(rf'^(?P<perc_dommage>Augmente les dommages de {rs_value}%)$')
     re_perc_dommage_trap = re.compile(rf'^(?P<perc_dommage_trap>{rs_value}% de dommages au pièges)$')
+    re_steal_hp = re.compile(rf'^Vole {rs_value} PV {rs_element}$')
     @staticmethod
     def parse_bonus(div):
         lines = ItemsSpider.extract_td_class_content(div, ['effet', 'b2']) 
@@ -91,6 +100,10 @@ class ItemsSpider(scrapy.Spider):
             match_classical_bonus = ItemsSpider.re_classical_bonus.match(line)
             if match_classical_bonus is not None:
                 res.append(ItemsSpider.parse_bonus_classical(match_classical_bonus))
+                continue
+            match_vole_pv = ItemsSpider.re_steal_hp.match(line)
+            if match_vole_pv is not None:
+                res.append(ItemsSpider.parse_steal_hp(match_vole_pv))
                 continue
             match_dommage = ItemsSpider.re_dommage.match(line)
             if match_dommage is not None:
