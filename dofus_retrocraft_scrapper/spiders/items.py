@@ -203,7 +203,7 @@ class ItemsSpider(scrapy.Spider):
                 'recipe': ItemsSpider.parse_recipe(item_component),
                 'bonus': ItemsSpider.parse_bonus(item_component),
                 'weapon_stats': ItemsSpider.parse_weapon_stats(item_component),
-                'requirments': ItemsSpider.parse_requirements(item_component)
+                'requirements': ItemsSpider.parse_requirements(item_component)
             }
             items.append(item)
         item_type = response.css('.donjon::text').get()
