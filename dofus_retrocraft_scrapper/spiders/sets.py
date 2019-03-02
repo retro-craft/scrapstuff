@@ -49,11 +49,14 @@ class SetsSpider(scrapy.Spider):
                 b = [SetsSpider.extract_bonus(bs) for bs in bonus.split(' / ')]
             bonus_by_items_count.append(b)
         return {
+            'name': response.meta.get('set_name'),
             'items': items,
             'bonus': bonus_by_items_count
         }
 
     def parse(self, response):
-        sets_link = response.css('#corps').css('.panop::attr(href)').getall()
-        for set_link in sets_link:
-             yield response.follow(f'{SetsSpider.base_url}/{set_link}', callback=self.parse_set)
+        sets = response.css('#corps').css('.panop')
+        for set_selector in sets:
+            set_link = set_selector.xpath('@href').extract_first()
+            set_name = set_selector.xpath('text()').extract_first()
+            yield response.follow(f'{SetsSpider.base_url}/{set_link}', callback=self.parse_set, meta={'set_name': set_name})
